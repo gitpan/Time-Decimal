@@ -6,6 +6,8 @@
 
 Time::Decimal -- Handle french revolutionary ten hour days
 
+L<Esperanto|POD2::EO::Time::Decimal>
+
 =head1 SYNOPSIS
 
     use Time::Decimal qw($precision h24s_h10 h24_h10 h10s_h24 h10_h24
@@ -26,6 +28,8 @@ Time::Decimal -- Handle french revolutionary ten hour days
 
     $precision = 's';
     loop { print "$_[0]\t" . localtime() . "\n" };
+
+or
 
     perl <path>/Time/Decimal.pm [-option ...] [time ...]
     ln <path>/Time/Decimal.pm dectime
@@ -65,7 +69,7 @@ package Time::Decimal;
 use warnings;
 use strict;
 
-our $VERSION = 0.02;
+our $VERSION = 0.03;
 
 sub FACTOR() { .86400 }		# One day has 86400 babylonian seconds.
 
@@ -134,13 +138,17 @@ our $precision = '';
 }
 
 
-sub h24s_h10($) {
-    my $sec = $_[0] / FACTOR;
+sub h10s_h10($) {
+    my $sec = $_[0];
     my $min = int $sec / 100;
     $sec = _seconds $min, 100, $sec - 100 * $min;
     $min = sprintf "%d_%02d", $min / 100, $min % 100;
     $min .= "_$sec" if $precision;
     $min;
+}
+
+sub h24s_h10($) {
+    h10s_h10 $_[0] / FACTOR;
 }
 
 sub h24_h10(@) {
@@ -164,27 +172,51 @@ sub h10_h24(@) {
 }
 
 
-sub transform($) {
-    # Perl is fussy about what strings it accepts as a number
-    sub _cleanup($) {
-	if( $_[0] ) {
-	    for( my $copy = $_[0] ) {
-		tr/_//d;
-		s/^0+(?=.)//;
-		return $_;
-	    }
-	} else {
-	    0;
+# Perl is fussy about what strings it accepts as a number
+sub h10_h10s($) {
+    if ( $_[0] ) {
+	for ( my $copy = $_[0] ) {
+	    tr/_//d;
+	    s/^0+(?=.)//;
+	    return $_;
 	}
+    } else {
+	0;
     }
+}
+
+sub transform($) {
     if( $_[0] =~ /^(\d+) : ([0-5]\d) (?: : ([0-5]\d (?: \.\d+_?\d* )?) )? \s*(?:(am)|(pm))? $/ix ) {
-	h24_h10 $4 ? $1 % 12 : $5 ? $1 % 12 + 12 : $1, $2, _cleanup $3;
+	h24_h10 $4 ? $1 % 12 : $5 ? $1 % 12 + 12 : $1, $2, h10_h10s $3;
+				# Abuse h10_h10s, as it can also cleanup h24s
     } elsif( $_[0] =~ /^(\d) _ (\d\d) (?: _ (\d\d (?: \.\d+_?\d* )?) )?$/x ) {
-	h10_h24 $1, $2, _cleanup $3;
+	h10_h24 $1, $2, h10_h10s $3;
     } else {
 	die "$0: invalid time format `$_[0]'\n";
     }
 }
+
+sub difference(@) {
+    my $acc;
+    for( @_ ) {
+	my $sec = h10_h10s( /:/ ? transform $_ : transform transform $_ );
+	if( defined $acc ) {
+	    $acc -= $sec;
+	} else {
+	    $acc = $sec;
+	}
+    }
+    h10s_h10 $acc;
+}
+
+sub sum(@) {
+    my $acc = 0;
+    for( @_ ) {
+	$acc += h10_h10s( /:/ ? transform $_ : transform transform $_ );
+    }
+    h10s_h10 $acc;
+}
+
 
 sub now_h10(;$) {
     my( $usec, $sec, $min, $h ) = @_ ? @_ :
@@ -232,18 +264,56 @@ sub now_h10(;$) {
 
 =head2 Command Line Interface
 
-    -s, --seconds
-    -d, --ds, --deciseconds
-    -c, --cs, --centiseconds
-    -m, --ms, --milliseconds
-    -u, --us, --microseconds
+=over
 
-    -e, --echo
-    -r, --reverse
-    -l, --loop
+=item -s, --seconds
 
-    -o, --old, --old-table, --babylonian, --babylonian-table
-    -n, --new, --new-table, --decimal, --decimal-table
+=item -d, --ds, --deciseconds
+
+=item -c, --cs, --centiseconds
+
+=item -m, --ms, --milliseconds
+
+=item -u, --us, --microseconds
+
+Output times at the given precision, instead of minutes.
+
+Eligu tempojn je la donita precizeco, anstataŭ minutoj.
+
+
+=item -e, --echo
+
+Output the transformed time along with the transformation.
+
+Eligu la transformitan tempon kune kun la transformaĵo.
+
+=item -r, --reverse
+
+Retransform the transformation to see possible loss due to insufficient
+precision.
+
+Retransformu la transformaĵon por vidi eblan perdon pro manko de precizeco.
+
+=item -l, --loop
+
+Output the time again each time the result changes at the wanted precision.
+Can be used as a clock, but if the precision is too small, the terminal
+emulation may have problems, either flickering or stalling.
+
+Eligu la tempon denove ĉiufoje ke la rezulto ŝanĝiĝas je la dezirita
+precizeco.  Uzeblas kiel horloĝo, sed se la precizeco tro malgrandas, la
+montrila programo povas havi problemojn, aŭ ŝanceliĝante, aŭ rifuzante.
+
+
+=item -o, --old, --old-table, --babylonian, --babylonian-table
+
+=item -n, --new, --new-table, --decimal, --decimal-table
+
+Supplies about 70 times of common interest.  Implies C<--echo>.
+
+Provizas ĉirkaŭ 70 tempoj de komuna intereso.  Implicas C<--echo>.
+
+=back
 
 =cut
 
