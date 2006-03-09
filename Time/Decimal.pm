@@ -6,7 +6,7 @@
 
 Time::Decimal -- Handle french revolutionary ten hour days
 
-L<Esperanto|POD2::EO::Time::Decimal>
+L<I<Esperanto>|POD2::EO::Time::Decimal>
 
 =head1 SYNOPSIS
 
@@ -43,12 +43,20 @@ everything, also invented a division of the day into ten hours of 100 minutes
 and again 100 seconds each.  The advantage is that seconds and minutes are
 roughly as long as those we know.  Hours are of course more than twice as long.
 
+For the purpose of transformation it doesn't make a difference whether we see
+1:30 as an early morning time, or as a duration of one and a half hours.  Thus
+a time like 84:00 meaning three and a half days is allowed.
+
 La babilona 24-hora horloĝo estas unu de la lastaj komplikaj restaĵoj de la
 antaŭ-dekuma epoko.  La franca revolucio, kiam ĝi kreis dekumajn mezurojn por
 ĉio, ankaŭ inventis disdividon de la tago en dek horojn, ĉiuj je 100 minutoj
 kaj tiuj de 100 sekundoj.  La avantaĝo estas ke sekundoj kaj minutoj daŭras
 proksimume same kiel tiuj kiujn ni konas.  Horoj kompreneble daŭras pli ol
 duoble.
+
+Por la transformcelo ne gravas ĉu ni konsideru 1:30 kiel frumatena tempo aŭ
+kiel daŭro de unu horo kaj duono.  Do tempo kiel 84:00 por signifi tri tagojn
+kaj duona estas permesata.
 
 Por povi memstare rekoni dekuman tempon, ni uzas C<_> anstataŭ C<:> kiel
 separilo.  Tiu signo uzeblas en multe pli da komputilaj kuntekstoj.  En Perl
@@ -69,7 +77,7 @@ package Time::Decimal;
 use warnings;
 use strict;
 
-our $VERSION = 0.03;
+our $VERSION = 0.04;
 
 sub FACTOR() { .86400 }		# One day has 86400 babylonian seconds.
 
@@ -309,9 +317,10 @@ montrila programo povas havi problemojn, aŭ ŝanceliĝante, aŭ rifuzante.
 
 =item -n, --new, --new-table, --decimal, --decimal-table
 
-Supplies about 70 times of common interest.  Implies C<--echo>.
+Supplies an overview of about 70 times of common interest.  Implies C<--echo>.
 
-Provizas ĉirkaŭ 70 tempoj de komuna intereso.  Implicas C<--echo>.
+Provizas superrigardon de ĉirkaŭ 70 tempoj de komuna intereso.  Implicas
+C<--echo>.
 
 =back
 
