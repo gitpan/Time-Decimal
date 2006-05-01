@@ -6,7 +6,7 @@
 
 Time::Decimal -- Handle french revolutionary ten hour days
 
-L<I<Esperanto>|POD2::EO::Time::Decimal>
+L<I<Esperanto>|POD2/EO/Time/Decimal.pod>
 
 =head1 SYNOPSIS
 
@@ -77,7 +77,7 @@ package Time::Decimal;
 use warnings;
 use strict;
 
-our $VERSION = 0.04;
+our $VERSION = 0.05;
 
 sub FACTOR() { .86400 }		# One day has 86400 babylonian seconds.
 
@@ -116,7 +116,7 @@ our $precision = '';
 		 ms %.3f
 		 µs %f
 		 us %f);
-    $fmt{"\xb5s"} = '%f';	# Latin µ
+    $fmt{"\xb5s"} = '%f';	# Latin-[13579] µ
     sub _seconds(\$$$) {
 	my( $minref, $modulo, $sec ) = @_;
 	if( $precision ) {
@@ -180,34 +180,41 @@ sub h10_h24(@) {
 }
 
 
-# Perl is fussy about what strings it accepts as a number
-sub h10_h10s($) {
+# Perl is fussy about what strings it accepts as a number.  We allow both
+# leading zeroes(not as octal) and underscores, which Perl's @#!% string to
+# number automatism refuses to accept, unlike in literal numbers.
+sub _cleanup($) {
     if ( $_[0] ) {
 	for ( my $copy = $_[0] ) {
 	    tr/_//d;
 	    s/^0+(?=.)//;
-	    return $_;
+	    return $_ + 0;
 	}
     } else {
-	0;
+	'00';
     }
 }
 
+my $h10re = qr/^(\d+) _ (\d\d) (?: _ (\d\d (?: \.\d+_?\d* )?) )?$/x;
 sub transform($) {
     if( $_[0] =~ /^(\d+) : ([0-5]\d) (?: : ([0-5]\d (?: \.\d+_?\d* )?) )? \s*(?:(am)|(pm))? $/ix ) {
-	h24_h10 $4 ? $1 % 12 : $5 ? $1 % 12 + 12 : $1, $2, h10_h10s $3;
-				# Abuse h10_h10s, as it can also cleanup h24s
-    } elsif( $_[0] =~ /^(\d) _ (\d\d) (?: _ (\d\d (?: \.\d+_?\d* )?) )?$/x ) {
-	h10_h24 $1, $2, h10_h10s $3;
+	h24_h10 $4 ? $1 % 12 : $5 ? $1 % 12 + 12 : $1, $2, _cleanup $3;
+    } elsif( $_[0] =~ /$h10re/o ) {
+	h10_h24 $1, $2, _cleanup $3;
     } else {
 	die "$0: invalid time format `$_[0]'\n";
     }
 }
 
+sub h10_h10s($) {
+    $_[0] =~ /$h10re/o;
+    0 + ($1 . $2 . _cleanup $3);
+}
+
 sub difference(@) {
     my $acc;
     for( @_ ) {
-	my $sec = h10_h10s( /:/ ? transform $_ : transform transform $_ );
+	my $sec = h10_h10s( /:/ ? transform $_ : $_ );
 	if( defined $acc ) {
 	    $acc -= $sec;
 	} else {
@@ -220,7 +227,7 @@ sub difference(@) {
 sub sum(@) {
     my $acc = 0;
     for( @_ ) {
-	$acc += h10_h10s( /:/ ? transform $_ : transform transform $_ );
+	$acc += h10_h10s( /:/ ? transform $_ : $_ );
     }
     h10s_h10 $acc;
 }
@@ -243,13 +250,12 @@ sub now_h10(;$) {
 		 ms => .001,
 		 'µs' => .000_001,
 		 us => .000_001);
-    $delta{"\xb5s"} = .000_001;	# Latin µ
+    $delta{"\xb5s"} = .000_001;	# Latin-[13579] µ
     sub loop(&) {
 	my $callback = $_[0];
 	require Time::HiRes;
 	my $last = '';
 	while( 1 ) {
-	  TOO_EARLY:
 	    my( $usec, $sec, $min, $h ) = Time::HiRes::time();
 	    my $orig = $usec;
 	    $sec = int $usec;
@@ -257,13 +263,13 @@ sub now_h10(;$) {
 	    ($sec, $min, $h) = localtime $sec;
 	    $sec = $h * 3600 + $min * 60 + $sec + $usec;
 	    my $cur = h24s_h10( $sec );
-	    goto TOO_EARLY if $cur eq $last; # Rarely select sleeps a bit too short, how about T::HR::sleep?
+	    redo if $cur eq $last; # Rarely select sleeps a bit too short, how about T::HR::sleep?
 	    &$callback( $cur );
 	    $last = $cur;
 	    $sec = ($sec / FACTOR + $delta{$precision}) / $delta{$precision};
-	    $sec = $orig - Time::HiRes::time() + # Compensate callback time
-		(1 - $sec + int $sec) * $delta{$precision} * FACTOR;
-	    Time::HiRes::sleep( $sec ) if $sec > 0;
+	    $sec = $orig + (1 - $sec + int $sec) * $delta{$precision} * FACTOR -
+		Time::HiRes::time(); # Compensate callback time and our overhead
+	    Time::HiRes::sleep( $sec ) if $sec > 0; # Callback may have taken longer than 1 unit
 	}
     }
 }
@@ -306,20 +312,23 @@ Retransformu la transformaĵon por vidi eblan perdon pro manko de precizeco.
 
 Output the time again each time the result changes at the wanted precision.
 Can be used as a clock, but if the precision is too small, the terminal
-emulation may have problems, either flickering or stalling.
+emulation may have problems, either flickering or repeatedly stalling (rxvt
+family).
 
 Eligu la tempon denove ĉiufoje ke la rezulto ŝanĝiĝas je la dezirita
 precizeco.  Uzeblas kiel horloĝo, sed se la precizeco tro malgrandas, la
-montrila programo povas havi problemojn, aŭ ŝanceliĝante, aŭ rifuzante.
+montrila programo povas havi problemojn, aŭ ŝanceliĝante, aŭ ade rifuzantete
+(rxvt familio).
 
 
 =item -o, --old, --old-table, --babylonian, --babylonian-table
 
 =item -n, --new, --new-table, --decimal, --decimal-table
 
-Supplies an overview of about 70 times of common interest.  Implies C<--echo>.
+Supplies overviews of about 70 times of common interest each.  Implies
+C<--echo>.
 
-Provizas superrigardon de ĉirkaŭ 70 tempoj de komuna intereso.  Implicas
+Provizas superrigardojn de po ĉirkaŭ 70 tempoj de komuna intereso.  Implicas
 C<--echo>.
 
 =back
@@ -333,7 +342,7 @@ if( caller ) {
 			  transform now_h10 loop);
 } else {
     require Getopt::Long;
-    Getopt::Long::config( qw(bundling no_getopt_compat) );
+    Getopt::Long::config( qw(bundling no_getopt_compat require_order) );
 
     my( $echo, $reverse, $loop );
     Getopt::Long::GetOptions
@@ -380,7 +389,7 @@ __END__
 
 L<DateTime::Calendar::FrenchRevolutionary> fits nicely into the DateTime
 hierarchy.  Alas that doesn't handle fractions, so they have a lossy
-transformation.  Besides fractions are much more natural in decimal time.
+transformation.  Besides fractions seem even more natural in decimal time.
 
 =head1 AUTHOR
 
