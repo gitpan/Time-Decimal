@@ -6,7 +6,9 @@
 
 Time::Decimal -- Handle french revolutionary ten hour days
 
-L<I<Esperanto>|POD2/EO/Time/Decimal.pod>
+L<I<Esperanto priskribo>|POD2::EO::Time::Decimal>
+
+
 
 =head1 SYNOPSIS
 
@@ -35,40 +37,26 @@ or
     ln <path>/Time/Decimal.pm dectime
     dectime [-option ...] [time ...]
 
+
+
 =head1 DESCRIPTION
 
 The Babyloninan 24 hour clock is one of the last complicated vestiges of the
 pre-decimal age.  The french revolution, when it created decimal measures for
 everything, also invented a division of the day into ten hours of 100 minutes
-and again 100 seconds each.  The advantage is that seconds and minutes are
-roughly as long as those we know.  Hours are of course more than twice as long.
-
-For the purpose of transformation it doesn't make a difference whether we see
-1:30 as an early morning time, or as a duration of one and a half hours.  Thus
-a time like 84:00 meaning three and a half days is allowed.
-
-La babilona 24-hora horloĝo estas unu de la lastaj komplikaj restaĵoj de la
-antaŭ-dekuma epoko.  La franca revolucio, kiam ĝi kreis dekumajn mezurojn por
-ĉio, ankaŭ inventis disdividon de la tago en dek horojn, ĉiuj je 100 minutoj
-kaj tiuj de 100 sekundoj.  La avantaĝo estas ke sekundoj kaj minutoj daŭras
-proksimume same kiel tiuj kiujn ni konas.  Horoj kompreneble daŭras pli ol
-duoble.
-
-Por la transformcelo ne gravas ĉu ni konsideru 1:30 kiel frumatena tempo aŭ
-kiel daŭro de unu horo kaj duono.  Do tempo kiel 84:00 por signifi tri tagojn
-kaj duona estas permesata.
-
-Por povi memstare rekoni dekuman tempon, ni uzas C<_> anstataŭ C<:> kiel
-separilo.  Tiu signo uzeblas en multe pli da komputilaj kuntekstoj.  En Perl
-ĝi estas ebla separilo inter ciferoj.  Kaj pri tio ja temas ĉi tie, ĉar dekuma
-tempo H_MM estas nenio alia ol tri-cifera nombro da minutoj.  Samo direblas
-pri kvin-cifera nombro da sekundoj
+and again 100 seconds each.  The nice thing is that seconds and (to a lesser
+degree) minutes are roughly as long as those we know.  Hours are of course
+more than twice as long.
 
 So as to be able to automatically recognize decimal time, we use C<_> instead
 of C<:> as a separator.  This character is usable in many more computer
 contexts.  In Perl it is a possible separator between digits.  And that's what
 it means here, because a decimal time H_MM is nothing else than a three digit
 number of minutes.  The same applies to five digit numbers of seconds.
+
+For the purpose of transformation it doesn't matter whether we see 1:30 as an
+early morning time, or as a duration of one and a half hours.  Thus a time
+like 84:00 or 35_00 meaning three and a half days is allowed.
 
 =cut
 
@@ -86,20 +74,19 @@ sub FACTOR() { .86400 }		# One day has 86400 babylonian seconds.
 Nothing is exported by default, but all of the following may be imported by
 the C<use> statement:
 
-Nenio estas memstare elportita, sed vi povas enporti la sekvajn per la C<use>
-ordono:
-
 =over
 
 =item $precision
 
-    's'	seconds
+    's'		seconds
     'ds'	deciseconds
     'cs'	centiseconds
     'ms'	milliseconds
     'µs', 'us'	microseconds
 
-UTF-8, Latin-1, -3, -5, -7 or Latin-9
+Where the µ-sign may be in UTF-8, Latin-1, -3, -5, -7 or Latin-9.
+
+Kie la µ-signo povas esti en UTF-8, Latino-1, -3, -5, -7 aŭ Latino-9.
 
 =cut
 
@@ -274,7 +261,13 @@ sub now_h10(;$) {
     }
 }
 
+=item See SYNOPSIS above
+
+I<Documentation for the various functions remains to be written.>
+
 =back
+
+
 
 =head2 Command Line Interface
 
@@ -292,33 +285,24 @@ sub now_h10(;$) {
 
 Output times at the given precision, instead of minutes.
 
-Eligu tempojn je la donita precizeco, anstataŭ minutoj.
-
 
 =item -e, --echo
 
 Output the transformed time along with the transformation.
 
-Eligu la transformitan tempon kune kun la transformaĵo.
 
 =item -r, --reverse
 
 Retransform the transformation to see possible loss due to insufficient
 precision.
 
-Retransformu la transformaĵon por vidi eblan perdon pro manko de precizeco.
 
 =item -l, --loop
 
 Output the time again each time the result changes at the wanted precision.
 Can be used as a clock, but if the precision is too small, the terminal
-emulation may have problems, either flickering or repeatedly stalling (rxvt
+emulation may have problems, either flickering or repeatedly stalling (C<rxvt>
 family).
-
-Eligu la tempon denove ĉiufoje ke la rezulto ŝanĝiĝas je la dezirita
-precizeco.  Uzeblas kiel horloĝo, sed se la precizeco tro malgrandas, la
-montrila programo povas havi problemojn, aŭ ŝanceliĝante, aŭ ade rifuzantete
-(rxvt familio).
 
 
 =item -o, --old, --old-table, --babylonian, --babylonian-table
@@ -328,18 +312,14 @@ montrila programo povas havi problemojn, aŭ ŝanceliĝante, aŭ ade rifuzantete
 Supplies overviews of about 70 times of common interest each.  Implies
 C<--echo>.
 
-Provizas superrigardojn de po ĉirkaŭ 70 tempoj de komuna intereso.  Implicas
-C<--echo>.
-
 =back
 
 =cut
 
 if( caller ) {
-      require Exporter;
-      our @ISA = 'Exporter';
-      our @EXPORT_OK = qw($precision h24s_h10 h24_h10 h10s_h24 h10_h24
-			  transform now_h10 loop);
+    use Exporter 'import';
+    our @EXPORT_OK = qw($precision h24s_h10 h24_h10 h10s_h24 h10_h24
+			transform now_h10 loop);
 } else {
     require Getopt::Long;
     Getopt::Long::config( qw(bundling no_getopt_compat require_order) );
@@ -390,6 +370,7 @@ __END__
 L<DateTime::Calendar::FrenchRevolutionary> fits nicely into the DateTime
 hierarchy.  Alas that doesn't handle fractions, so they have a lossy
 transformation.  Besides fractions seem even more natural in decimal time.
+
 
 =head1 AUTHOR
 
