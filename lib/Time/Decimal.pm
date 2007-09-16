@@ -65,7 +65,7 @@ package Time::Decimal;
 use warnings;
 use strict;
 
-our $VERSION = 0.05;
+our $VERSION = 0.07;
 
 sub FACTOR() { .86400 }		# One day has 86400 babylonian seconds.
 
@@ -78,6 +78,7 @@ the C<use> statement:
 
 =item $precision
 
+    ''		minutes (the default)
     's'		seconds
     'ds'	deciseconds
     'cs'	centiseconds
@@ -85,8 +86,6 @@ the C<use> statement:
     'µs', 'us'	microseconds
 
 Where the µ-sign may be in UTF-8, Latin-1, -3, -5, -7 or Latin-9.
-
-Kie la µ-signo povas esti en UTF-8, Latino-1, -3, -5, -7 aŭ Latino-9.
 
 =cut
 
@@ -229,35 +228,39 @@ sub now_h10(;$) {
     h24_h10 $h, $min, $sec + $usec;
 }
 
-{
-    my %delta = ('' => 100,
-		 s => 1,
-		 ds => .1,
-		 cs => .01,
-		 ms => .001,
-		 'µs' => .000_001,
-		 us => .000_001);
-    $delta{"\xb5s"} = .000_001;	# Latin-[13579] µ
-    sub loop(&) {
-	my $callback = $_[0];
-	require Time::HiRes;
-	my $last = '';
-	while( 1 ) {
-	    my( $usec, $sec, $min, $h ) = Time::HiRes::time();
-	    my $orig = $usec;
-	    $sec = int $usec;
-	    $usec -= $sec;
-	    ($sec, $min, $h) = localtime $sec;
-	    $sec = $h * 3600 + $min * 60 + $sec + $usec;
-	    my $cur = h24s_h10( $sec );
-	    redo if $cur eq $last; # Rarely select sleeps a bit too short, how about T::HR::sleep?
-	    &$callback( $cur );
-	    $last = $cur;
-	    $sec = ($sec / FACTOR + $delta{$precision}) / $delta{$precision};
-	    $sec = $orig + (1 - $sec + int $sec) * $delta{$precision} * FACTOR -
-		Time::HiRes::time(); # Compensate callback time and our overhead
-	    Time::HiRes::sleep( $sec ) if $sec > 0; # Callback may have taken longer than 1 unit
-	}
+=item loop { I<perlcode> }
+
+
+
+=cut
+
+my %delta = ('' => 100,
+	     s => 1,
+	     ds => .1,
+	     cs => .01,
+	     ms => .001,
+	     'µs' => .000_001,
+	     us => .000_001,
+	     "\xb5s" => .000_001);	# Latin-[13579] µ
+sub loop(&) {
+    my $callback = $_[0];
+    require Time::HiRes;
+    my $last = '';
+    while( 1 ) {
+	my( $usec, $sec, $min, $h ) = Time::HiRes::time();
+	my $orig = $usec;
+	$sec = int $usec;
+	$usec -= $sec;
+	($sec, $min, $h) = localtime $sec;
+	$sec = $h * 3600 + $min * 60 + $sec + $usec;
+	my $cur = h24s_h10( $sec );
+	redo if $cur eq $last; # Rarely select sleeps a bit too short, how about T::HR::sleep?
+	last if !&$callback( $cur );
+	$last = $cur;
+	$sec = ($sec / FACTOR + $delta{$precision}) / $delta{$precision};
+	$sec = $orig + (1 - $sec + int $sec) * $delta{$precision} * FACTOR -
+	    Time::HiRes::time(); # Compensate callback time and our overhead
+	Time::HiRes::sleep( $sec ) if $sec > 0; # Callback may have taken longer than 1 unit
     }
 }
 

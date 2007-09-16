@@ -2,7 +2,7 @@ die "not a module: use Time::Decimal";
 
 =encoding utf-8
 
-=head1 NOMO
+=head1 NAME/NOMO
 
 Time::Decimal -- Pritraktu franc-revoluciajn dek horajn tagojn
 
